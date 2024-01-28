@@ -10,7 +10,7 @@ const cloudinary = require('cloudinary').v2;
 
 const dbURI = process.env.DB_URI;
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 cloudinary.config({
   cloud_name: 'dkfgfnbst',
