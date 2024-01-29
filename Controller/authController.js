@@ -243,6 +243,7 @@ exports.completeProfile = async (req, res) => {
                 })
                 return res.status(200).json({
                     message: "USER COMPLETED PROFILE SUCCESSFULLY",
+                    data:profiledata
 
                 });
             }).end(req.file.buffer);
