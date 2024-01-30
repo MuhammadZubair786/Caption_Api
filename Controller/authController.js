@@ -79,15 +79,16 @@ exports.createUser = async (req, res) => {
                     console.log("Error in sending Mail", err);
                 }
                 else {
-                    // console.log("Mail sent successfully", info);
-                }
-            })
-
-            return res.status(200).json({
+                      return res.status(200).json({
                 message: "Otp Send In Regsister Email",
                 data: newUser,
                 token: `${token}`
             });
+                    // console.log("Mail sent successfully", info);
+                }
+            })
+
+          
         }
     }
     catch (e) {
