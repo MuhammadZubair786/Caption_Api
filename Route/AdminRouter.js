@@ -4,7 +4,7 @@ const express = require('express');
 const multer = require('multer');
 const { validateCategory } = require('../Validator/categoryValidate');
 const { authMiddleware } = require('./authMiddleWare');
-const { createCategory, createSubCategory, viewCategory, createCaptionCategory, createImages } = require('../Controller/categoryController');
+const { createCategory, createSubCategory, viewCategory, createCaptionCategory, createImages, deleteCategory, updateCategory, viewSubCategory, deletesubCategory, updatesubCategory, getCaptions, deleteCaptions } = require('../Controller/categoryController');
 const subCategoryModel = require('../Model/subCategoryModel');
 const { adminLogin } = require('../Controller/adminController');
 
@@ -45,12 +45,6 @@ router.post(
     createCategory
 );
 
-router.post(
-    '/subCreate-Category/:id',
-    authMiddleware,
-    createSubCategory
-);
-
 
 router.get(
     '/viewCategory',
@@ -58,12 +52,55 @@ router.get(
     viewCategory
 );
 
+router.delete(
+    '/delete-Category/:categoryId',
+    authMiddleware,
+    deleteCategory
+);
+
+
 router.post(
-    '/subCreate-Category',
+    '/update-Category/:categoryId',
+    authMiddleware,
+    upload.single('image'),
+    updateCategory
+);
+
+
+router.post(
+    '/subCreate-Category/:id',
     authMiddleware,
     createSubCategory
 );
 
+router.post(
+    '/update-sub-category/:subCategoryId',
+    authMiddleware,
+    updatesubCategory
+);
+
+
+
+
+router.delete(
+    '/subCreate-Category/:subCategoryId',
+    authMiddleware,
+    deletesubCategory
+);
+
+
+router.delete(
+    '/delete-subCreate/:subCategoryId',
+    authMiddleware,
+    createSubCategory
+);
+
+
+router.get(
+    '/view-subCreate/:categoryId',
+    authMiddleware,
+    viewSubCategory
+);
 
 router.post(
     '/Caption-Category/:id',
@@ -76,6 +113,21 @@ router.post(
     authMiddleware,
     createSubCategory
 );
+
+
+router.get(
+    '/get-caption',
+    authMiddleware,
+    getCaptions
+);
+
+router.delete(
+    '/delete-caption/:id',
+    authMiddleware,
+    deleteCaptions
+);
+
+
 
 router.post(
     '/add-Images',

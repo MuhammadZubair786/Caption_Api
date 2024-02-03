@@ -62,6 +62,132 @@ exports.createCategory = async (req, res) => {
     // }
 }
 
+exports.viewCategory = async (req, res) => {
+    try {
+    const checkAdmin = await userModel.findById(req.userId)
+    if (checkAdmin.userType == "admin") {
+        let category = await categoryModel.find({}).populate("sub_category")
+
+
+        return res.status(200).json({ message: 'View All Category', data: category });
+    }
+    else {
+        return res.status(400).json({ error: 'Please Login as Admin' });
+    }
+
+
+    }
+    catch(e){
+        return res.status(409).json({ error: 'Error' });
+    }
+
+}
+
+exports.deleteCategory = async (req, res) => {
+    try {
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
+            const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
+
+            const deleteSubCategry = await subCategoryModel.findOneAndDelete({categoryId})
+
+            const deleteCaptions = await CaptionModel.findOneAndDelete({categoryId})
+
+
+            if (!deletedCategory) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            return res.status(200).json({ message: 'Category deleted successfully', data: deletedCategory });
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+
+exports.updateCategory = async (req, res) => {
+    try {
+
+        if (Object.keys(req.body).length === 0) {
+            return res.status(400).json({ message: 'No fields provided for update' });
+        }
+        const validationResult = validateCategory(req.body);
+
+        if (validationResult) {
+            console.error('Validation error:', validationResult.message);
+            return res.json({ message: validationResult.message });
+        }
+
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
+       
+           let imageLink = "";
+
+
+        if (req.file != undefined) { 
+            console.log("********")
+            const folderName = 'category';
+            const qualityLevel = 'auto:low';
+    
+            const bufferStream = cloudinary.uploader.upload_stream(
+                { folder: folderName, resource_type: 'auto', quality: qualityLevel },
+                async (error, result) => {
+                    if (error) {
+                        return res.status(500).json({ error: 'Failed to upload image to Cloudinary' });
+                    }
+                    
+           
+                    imageLink = result.secure_url
+                    console.log("imagelink")
+
+                    const updatedCategory = await categoryModel.findByIdAndUpdate(
+                        categoryId,
+                        { ...req.body, categoryImage: imageLink  },
+                        { new: true }
+                    );
+        
+                    if (!updatedCategory) {
+                        return res.status(404).json({ error: 'Category not found' });
+                    }
+        
+                    return res.status(200).json({ message: 'Category updkasjmfknaskated successfull1y', data: updatedCategory });
+                });
+                 bufferStream.end(req.file.buffer);
+
+
+        }
+        else{
+            const updatedCategory = await categoryModel.findByIdAndUpdate(
+            categoryId,
+           {...req.body},
+            { new: true }
+        );
+
+        if (!updatedCategory) {
+            return res.status(404).json({ error: 'Category not found' });
+        }
+
+        return res.status(200).json({ message: 'Category updated successfully', data: updatedCategory });
+
+        }
+
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
 exports.createSubCategory = async (req, res) => {
     try {
 
@@ -114,12 +240,36 @@ exports.createSubCategory = async (req, res) => {
     }
 }
 
-exports.viewCategory = async (req, res) => {
+exports.deleteCategory = async (req, res) => {
+    try {
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
+            const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
+
+            if (!deletedCategory) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            return res.status(200).json({ message: 'Category deleted successfully', data: deletedCategory });
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+exports.viewSubCategory = async (req, res) => {
     try {
     const checkAdmin = await userModel.findById(req.userId)
     if (checkAdmin.userType == "admin") {
-        let category = await categoryModel.find({}).populate("sub_category")
-        return res.status(200).json({ message: 'View All Category', data: category });
+        let subcategory = await subCategoryModel.find({categoryId:req.params.categoryId}).populate("captions")
+
+
+        return res.status(200).json({ message: 'View All Sub Category', data: subcategory });
     }
     else {
         return res.status(400).json({ error: 'Please Login as Admin' });
@@ -132,6 +282,150 @@ exports.viewCategory = async (req, res) => {
     }
 
 }
+
+exports.deletesubCategory = async (req, res) => {
+    try {
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const subcategoryId = req.params.subCategoryId; // Assuming you have the categoryId in the request parameters
+            console.log(subcategoryId)
+            const deletedSubCategory = await subCategoryModel
+                .findByIdAndDelete(subcategoryId)// Assuming 'category' is the field in subCategoryModel referencing categoryModel
+
+            if (!deletedSubCategory) {
+                return res.status(404).json({ error: 'Sub Category not found' });
+            }
+
+            // Remove the subcategory from the associated category
+            const categoryId = deletedSubCategory.categoryId;
+            const updatedCategory = await categoryModel.findByIdAndUpdate(
+                categoryId,
+                { $pull: { sub_category: subcategoryId } },
+                { new: true }
+            );
+
+            return res.status(200).json({ message: 'Sub Category deleted successfully', data: deletedSubCategory });
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+exports.updatesubCategory = async (req, res) => {
+    try {
+
+        if (Object.keys(req.body).length === 0) {
+            return res.status(400).json({ message: 'No fields provided for update' });
+        }
+        const validationResult = validateSubCategory(req.body);
+
+        if (validationResult) {
+            console.error('Validation error:', validationResult.message);
+            return res.json({ message: validationResult.message });
+        }
+
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const categoryId = req.params.subCategoryId; // Assuming you have the categoryId in the request parameters
+        const updatedCategory = await subCategoryModel.findByIdAndUpdate(
+            categoryId,
+           {...req.body},
+            { new: true }
+        );
+
+        if (!updatedCategory) {
+            return res.status(404).json({ error: 'Sub category not found' });
+        }
+
+        return res.status(200).json({ message: 'Sub category updated successfully', data: updatedCategory });
+
+        
+
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+
+ exports.getCaptions = async (req, res) => {
+        try {
+            const { categoryId, subCategoryId } = req.body;
+    
+            let query = {};
+
+            if (categoryId) {
+                query = { categoryId };
+            }
+
+            if (subCategoryId) {
+                query = { subCategoryId };
+            }
+
+            console.log(query)
+
+            const captions = await CaptionModel.find(query);
+    
+            if (!captions || captions.length === 0) {
+                return res.status(404).json({ error: 'No captions found for the provided criteria' });
+            }
+    
+            return res.status(200).json({ message: 'Captions retrieved successfully', data: captions });
+        } catch (e) {
+            console.log(e);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
+};
+
+exports.deleteCaptions = async (req, res) => {
+    try {
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
+            console.log(captionId)
+            const deletedCaptions = await CaptionModel
+                .findByIdAndDelete(captionId)// Assuming 'category' is the field in subCategoryModel referencing categoryModel
+
+            if (!deletedCaptions) {
+                return res.status(404).json({ error: 'Captions not found' });
+            }
+
+            // Remove the subcategory from the associated category
+            const categoryId = deletedCaptions.categoryId;
+            const updatedCategory = await categoryModel.findByIdAndUpdate(
+                categoryId,
+                { $pull: { sub_category: deletedCaptions.categoryId } },
+                { new: true }
+            );
+
+            const updatedSubCategory = await subCategoryModel.findByIdAndUpdate(
+                categoryId,
+                { $pull: { sub_category: deletedCaptions.subCategoryId } },
+                { new: true }
+            );
+
+            return res.status(200).json({ message: 'Captions deleted successfully', data: deletedCaptions });
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+
+}
+
+
+
 
 // exports.createSubCategory1 = async (req, res) => {
 //     try {
