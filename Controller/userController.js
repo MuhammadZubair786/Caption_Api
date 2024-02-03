@@ -2,6 +2,7 @@ const bcypt = require("bcryptjs")
 const jwt = require('jsonwebtoken');
 const { AuthValidator } = require("../Validator/AuthValidate");
 const userModel = require("../Model/userModel");
+const CaptionModel = require("../Model/CaptionModel");
 
 const nodemailer = require("nodemailer");
 const { check_missing_fields } = require("../helper/common_function");
@@ -10,6 +11,8 @@ const profileModel = require("../Model/profileModel");
 const constantFunc = require("../constant/user");
 const { validaterequest } = require("../Validator/RequestValidate");
 const categoryModel = require("../Model/categoryModel");
+const subCategoryModel = require("../Model/subCategoryModel");
+const ImagesModel = require("../Model/ImagesModel");
 const seckret_key = process.env.seckret_key;
 
 const sdk = require('api')('@revenuecat/v1.sk_WbQPaFbmWnZVfaKRuCXaLRVjNqDDk');
@@ -177,5 +180,61 @@ exports.viewCategory = async (req, res) => {
         return res.status(409).json({ error: 'Error' });
     }
 
+}
+
+exports.viewSubCategory = async (req, res) => {
+    try {
+        console.log(req.params.categoryId)
+
+        let subcategory = await subCategoryModel.find({categoryId:req.params.categoryId}).populate("captions")
+        return res.status(200).json({ message: 'View All Sub Category', data: subcategory });
+
+    }
+    catch(e){
+        return res.status(409).json({ error: 'Error' });
+    }
+
+}
+
+exports.getCaptions = async (req, res) => {
+    try {
+        const { categoryId, subCategoryId } = req.body;
+
+        let query = {};
+
+        if (categoryId) {
+            query = { categoryId };
+        }
+
+        if (subCategoryId) {
+            query = { subCategoryId };
+        }
+
+        console.log(query)
+
+        const captions = await CaptionModel.find(query);
+
+        if (!captions || captions.length === 0) {
+            return res.status(404).json({ error: 'No captions found for the provided criteria' });
+        }
+
+        return res.status(200).json({ message: 'Captions retrieved successfully', data: captions });
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+exports.getImages = async (req, res) => {
+    try{
+    
+            let Images = await ImagesModel.find({})
+            return res.status(200).json({ message: 'View All Images', data: Images });
+       
+    
+        }
+        catch(e){
+            return res.status(409).json({ error: 'Error' });
+        }
 }
 

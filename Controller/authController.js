@@ -51,13 +51,13 @@ exports.createUser = async (req, res) => {
             const transporter = nodemailer.createTransport({
                 service: "gmail",
                 auth: {
-                    user: "smtp@thesuitch.com",
-                    pass: "geslztjkqejsblok"
+                    user: "devsuitch@gmail.com",
+                    pass: "mvxhdzeiaxzztdrh"
                 }
             })
 
             const info = {
-                from: "smtp@thesuitch.com",
+                from: "devsuitch@gmail.com",
                 to: req.body.email,
                 subject: "Welcome to Your App - OTP Verification",
                 html: `

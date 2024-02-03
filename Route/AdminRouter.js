@@ -4,7 +4,7 @@ const express = require('express');
 const multer = require('multer');
 const { validateCategory } = require('../Validator/categoryValidate');
 const { authMiddleware } = require('./authMiddleWare');
-const { createCategory, createSubCategory, viewCategory, createCaptionCategory, createImages, deleteCategory, updateCategory, viewSubCategory, deletesubCategory, updatesubCategory, getCaptions, deleteCaptions } = require('../Controller/categoryController');
+const { createCategory, createSubCategory, viewCategory, createCaptionCategory, createImages, deleteCategory, updateCategory, viewSubCategory, deletesubCategory, updatesubCategory, getCaptions, deleteCaptions, editCaption, viewImages, deleteImages } = require('../Controller/categoryController');
 const subCategoryModel = require('../Model/subCategoryModel');
 const { adminLogin } = require('../Controller/adminController');
 
@@ -122,9 +122,16 @@ router.get(
 );
 
 router.delete(
-    '/delete-caption/:id',
+    '/delete-caption/:captionId',
     authMiddleware,
     deleteCaptions
+);
+
+
+router.post(
+    '/edit-caption/:captionId',
+    authMiddleware,
+    editCaption
 );
 
 
@@ -134,6 +141,18 @@ router.post(
     authMiddleware,
     upload.single('image'),
     createImages
+);
+
+router.get(
+    '/view-Images',
+    authMiddleware,
+    viewImages
+);
+
+router.delete(
+    '/delete-Image/:imageId',
+    authMiddleware,
+    deleteImages
 );
 
 

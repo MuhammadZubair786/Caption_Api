@@ -403,13 +403,13 @@ exports.deleteCaptions = async (req, res) => {
             const categoryId = deletedCaptions.categoryId;
             const updatedCategory = await categoryModel.findByIdAndUpdate(
                 categoryId,
-                { $pull: { sub_category: deletedCaptions.categoryId } },
+                { $pull: { Caption: captionId } },
                 { new: true }
             );
 
             const updatedSubCategory = await subCategoryModel.findByIdAndUpdate(
                 categoryId,
-                { $pull: { sub_category: deletedCaptions.subCategoryId } },
+                { $pull: {  Caption: captionId } },
                 { new: true }
             );
 
@@ -422,6 +422,46 @@ exports.deleteCaptions = async (req, res) => {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 
+}
+
+exports.editCaption = async (req,res)=>{
+    try {
+
+        if (Object.keys(req.body).length === 0) {
+            return res.status(400).json({ message: 'No fields provided for update' });
+        }
+        const validationResult = validateCategoryCaption(req.body);
+
+        if (validationResult) {
+            console.error('Validation error:', validationResult.message);
+            return res.json({ message: validationResult.message });
+        }
+
+        const checkAdmin = await userModel.findById(req.userId);
+
+        if (checkAdmin.userType === "admin") {
+            const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
+        const updatedCaption = await CaptionModel.findByIdAndUpdate(
+            captionId,
+           {...req.body},
+            { new: true }
+        );
+
+        if (!updatedCaption) {
+            return res.status(404).json({ error: 'Caption not found' });
+        }
+
+        return res.status(200).json({ message: 'Caption updated successfully', data: updatedCaption });
+
+        
+
+        } else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    } catch (e) {
+        console.log(e);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
 }
 
 
@@ -603,4 +643,64 @@ exports.createImages = async (req, res) => {
     }
 }
 
+exports.deleteImages = async (req, res) => {
+    try {
+    const checkAdmin = await userModel.findById(req.userId)
+    if (checkAdmin.userType == "admin") {
+        const imageId = req.params.imageId; // Assuming you have the categoryId in the request parameters
+
+        const deletedImage = await ImagesModel.findByIdAndDelete(imageId)
+        return res.status(200).json({ message: 'Image  deleted successfully', data: deletedImage });
+
+    }
+    else {
+        return res.status(400).json({ error: 'Please Login as Admin' });
+    }
+
+    }
+    catch (e) {
+        console.log(e)
+        return res.status(409).json({ error: e });
+    }
+}
+
+exports.viewImages = async (req, res) => {
+    try{
+        const checkAdmin = await userModel.findById(req.userId)
+        if (checkAdmin.userType == "admin") {
+            let Images = await ImagesModel.find({})
+    
+    
+            return res.status(200).json({ message: 'View All Images', data: Images });
+        }
+        else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    
+    
+        }
+        catch(e){
+            return res.status(409).json({ error: 'Error' });
+        }
+}
+
+exports.deleteImages = async (req, res) => {
+    try{
+        const checkAdmin = await userModel.findById(req.userId)
+        if (checkAdmin.userType == "admin") {
+            let Images = await ImagesModel.findByIdAndDelete(req.params.imageId)
+    
+    
+            return res.status(200).json({ message: 'Delete Image', data: Images });
+        }
+        else {
+            return res.status(400).json({ error: 'Please Login as Admin' });
+        }
+    
+    
+        }
+        catch(e){
+            return res.status(409).json({ error: 'Error' });
+        }
+}
 // Zubair11$%^
