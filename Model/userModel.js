@@ -36,7 +36,14 @@ const userSchema = new mongoose.Schema({
     otp: {
         type: Number,
         default: 0
-    }
+    },
+    posts: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'posts'
+        }
+       
+    ]
 
 
 });

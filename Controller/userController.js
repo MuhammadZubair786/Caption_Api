@@ -13,6 +13,7 @@ const { validaterequest } = require("../Validator/RequestValidate");
 const categoryModel = require("../Model/categoryModel");
 const subCategoryModel = require("../Model/subCategoryModel");
 const ImagesModel = require("../Model/ImagesModel");
+const postModel = require("../Model/postModel");
 const seckret_key = process.env.seckret_key;
 
 const sdk = require('api')('@revenuecat/v1.sk_WbQPaFbmWnZVfaKRuCXaLRVjNqDDk');
@@ -98,7 +99,7 @@ exports.getAllUser = async (req, res) => {
         if (user) {
             var getUser = await userModel.find({ userType: "user", _id: { $ne: req.userId } }).populate("profileId")
             return res.status(200).json({
-                message: 'user get test',
+                message: 'user all users',
                 data: getUser
             });
         }
@@ -236,5 +237,28 @@ exports.getImages = async (req, res) => {
         catch(e){
             return res.status(409).json({ error: 'Error' });
         }
+}
+
+exports.getUserPosts = async (req, res) => {
+    try {
+     
+        var getAllPost = await postModel.find({user_id:req.params.userId})
+        if (getAllPost) {
+            return res.status(200).json({
+                message: 'user get Post',
+                data: getAllPost
+            });
+        }
+
+
+    }
+    catch (e) {
+        console.error('Error:', e);
+        return res.status(500).json({
+            message: 'Internal server error',
+            error: e,
+        });
+    }
+
 }
 
