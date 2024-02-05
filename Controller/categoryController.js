@@ -11,7 +11,7 @@ const mongoose = require('mongoose');
 
 
 exports.createCategory = async (req, res) => {
-    // try {
+    try {
 
     const validationResult = validateCategory(req.body);
 
@@ -22,6 +22,8 @@ exports.createCategory = async (req, res) => {
     }
 
     const checkAdmin = await userModel.findById(req.userId)
+    console.log(checkAdmin)
+    
     if (checkAdmin.userType == "admin") {
 
         if (req.file == undefined) {
@@ -55,11 +57,11 @@ exports.createCategory = async (req, res) => {
         return res.status(400).json({ error: 'Please Login as Admin' });
     }
 
-    // }
-    // catch (e) {
-    //     console.log(e)
-    //     return res.status(409).json({ error: e });
-    // }
+    }
+    catch (e) {
+        console.log(e)
+        return res.status(409).json({ error: e });
+    }
 }
 
 exports.viewCategory = async (req, res) => {
