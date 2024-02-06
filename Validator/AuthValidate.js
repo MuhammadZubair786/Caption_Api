@@ -22,7 +22,7 @@ const AuthValidator = Joi.object({
     'any.required': `Password is required`,
     'string.min': `Name should have a minimum length of {#limit}`,
   }),
-  userType: Joi.string().valid('admin').required().messages({
+  userType: Joi.string().valid('user').required().messages({
     'string.base': 'User Type must be a string',
     'string.empty': 'User Type cannot be empty',
     'any.only': 'User Type must be one of "user", or "guest"',
