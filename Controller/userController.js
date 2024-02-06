@@ -241,16 +241,30 @@ exports.getImages = async (req, res) => {
 
 exports.getUserPosts = async (req, res) => {
     try {
-     
-        var getAllPost = await postModel.find({user_id:req.params.userId})
-        if (getAllPost) {
-            return res.status(200).json({
-                message: 'user get Post',
-                data: getAllPost
-            });
+
+        if(req.body.post_type==undefined || req.body.post_type==null){
+            return res.status(409).json({ error: 'Enter Post type' });
         }
-
-
+        if(req.body.post_type=="title"){
+            var getAllPost = await postModel.find({user_id:req.params.userId,post_type:"title"})
+            if (getAllPost) {
+                return res.status(200).json({
+                    message: 'user get Post',
+                    data: getAllPost
+                });
+            }
+    
+        }
+        else if(req.body.post_type=="image"){
+            var getAllPost = await postModel.find({user_id:req.params.userId,post_type:"image"})
+            if (getAllPost) {
+                return res.status(200).json({
+                    message: 'user get Post',
+                    data: getAllPost
+                });
+            }
+    
+        }
     }
     catch (e) {
         console.error('Error:', e);
