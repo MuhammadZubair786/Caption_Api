@@ -105,6 +105,7 @@ router.get(
 router.post(
     '/Caption-Category/:id',
     authMiddleware,
+    upload.single('image'),
     createCaptionCategory
 );
 
@@ -131,6 +132,7 @@ router.delete(
 router.post(
     '/edit-caption/:captionId',
     authMiddleware,
+    upload.single('image'),
     editCaption
 );
 

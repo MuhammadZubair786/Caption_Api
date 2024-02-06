@@ -3,467 +3,691 @@ const ImagesModel = require("../Model/ImagesModel");
 const categoryModel = require("../Model/categoryModel");
 const subCategoryModel = require("../Model/subCategoryModel");
 const userModel = require("../Model/userModel");
-const { validateCategoryCaption } = require("../Validator/CaptionValidate");
-const { validateCategory } = require("../Validator/categoryValidate");
-const { validateSubCategory } = require("../Validator/subCategoryValidate");
+const {
+	validateCategoryCaption
+} = require("../Validator/CaptionValidate");
+const {
+	validateCategory
+} = require("../Validator/categoryValidate");
+const {
+	validateSubCategory
+} = require("../Validator/subCategoryValidate");
 const cloudinary = require('cloudinary').v2;
 const mongoose = require('mongoose');
 
 
 exports.createCategory = async (req, res) => {
-    try {
+	try {
 
-    const validationResult = validateCategory(req.body);
+		const validationResult = validateCategory(req.body);
 
-    if (validationResult) {
-        console.error('Validation error:', validationResult.message);
-        return res.json({ message: validationResult.message });
+		if (validationResult) {
+			console.error('Validation error:', validationResult.message);
+			return res.json({
+				message: validationResult.message
+			});
 
-    }
+		}
 
-    const checkAdmin = await userModel.findById(req.userId)
-    console.log(checkAdmin)
-    
-    if (checkAdmin.userType == "admin") {
+		const checkAdmin = await userModel.findById(req.userId)
+		console.log(checkAdmin)
 
-        if (req.file == undefined) {
+		if (checkAdmin.userType == "admin") {
 
-            return res.status(401).json({ message: 'Select Category Pic' });
-        }
+			if (req.file == undefined) {
 
-        const folderName = 'category';
-        const qualityLevel = 'auto:low';
+				return res.status(401).json({
+					message: 'Select Category Pic'
+				});
+			}
 
-        const bufferStream = cloudinary.uploader.upload_stream(
-            { folder: folderName, resource_type: 'auto', quality: qualityLevel },
-            (error, result) => {
-                if (error) {
-                    return res.status(500).json({ error: 'Failed to upload image to Cloudinary' });
-                }
+			const folderName = 'category';
+			const qualityLevel = 'auto:low';
+
+			const bufferStream = cloudinary.uploader.upload_stream({
+					folder: folderName,
+					resource_type: 'auto',
+					quality: qualityLevel
+				},
+				(error, result) => {
+					if (error) {
+						return res.status(500).json({
+							error: 'Failed to upload image to Cloudinary'
+						});
+					}
 
 
-                // Add the Cloudinary URL to your category data
-                const catAdd = categoryModel({ ...req.body, categoryImage: result.secure_url });
-                catAdd.save();
+					// Add the Cloudinary URL to your category data
+					const catAdd = categoryModel({
+						...req.body,
+						categoryImage: result.secure_url
+					});
+					catAdd.save();
 
-                return res.status(409).json({ message: 'Add New Category', data: catAdd });
-            }
-        );
+					return res.status(409).json({
+						message: 'Add New Category',
+						data: catAdd
+					});
+				}
+			);
 
-        // Convert the Buffer to a ReadableStream
-        bufferStream.end(req.file.buffer);
-    }
-    else {
-        return res.status(400).json({ error: 'Please Login as Admin' });
-    }
+			// Convert the Buffer to a ReadableStream
+			bufferStream.end(req.file.buffer);
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
 
-    }
-    catch (e) {
-        console.log(e)
-        return res.status(409).json({ error: e });
-    }
+	} catch (e) {
+		console.log(e)
+		return res.status(409).json({
+			error: e
+		});
+	}
 }
 
 exports.viewCategory = async (req, res) => {
-    try {
-    const checkAdmin = await userModel.findById(req.userId)
-    if (checkAdmin.userType == "admin") {
-        let category = await categoryModel.find({}).populate("sub_category")
+	try {
+		const checkAdmin = await userModel.findById(req.userId)
+		if (checkAdmin.userType == "admin") {
+			let category = await categoryModel.find({}).populate("sub_category")
 
 
-        return res.status(200).json({ message: 'View All Category', data: category });
-    }
-    else {
-        return res.status(400).json({ error: 'Please Login as Admin' });
-    }
+			return res.status(200).json({
+				message: 'View All Category',
+				data: category
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
 
 
-    }
-    catch(e){
-        return res.status(409).json({ error: 'Error' });
-    }
+	} catch (e) {
+		return res.status(409).json({
+			error: 'Error'
+		});
+	}
 
 }
 
 exports.deleteCategory = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findById(req.userId);
+	try {
+		const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
-            const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
+		if (checkAdmin.userType === "admin") {
+			const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
+			const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
 
-            const deleteSubCategry = await subCategoryModel.findOneAndDelete({categoryId})
+			const deleteSubCategry = await subCategoryModel.findOneAndDelete({
+				categoryId
+			})
 
-            const deleteCaptions = await CaptionModel.findOneAndDelete({categoryId})
+			const deleteCaptions = await CaptionModel.findOneAndDelete({
+				categoryId
+			})
 
 
-            if (!deletedCategory) {
-                return res.status(404).json({ error: 'Category not found' });
-            }
+			if (!deletedCategory) {
+				return res.status(404).json({
+					error: 'Category not found'
+				});
+			}
 
-            return res.status(200).json({ message: 'Category deleted successfully', data: deletedCategory });
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+			return res.status(200).json({
+				message: 'Category deleted successfully',
+				data: deletedCategory
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 }
 
 
 exports.updateCategory = async (req, res) => {
-    try {
+	try {
 
-        if (Object.keys(req.body).length === 0) {
-            return res.status(400).json({ message: 'No fields provided for update' });
-        }
-        const validationResult = validateCategory(req.body);
+		if (Object.keys(req.body).length === 0) {
+			return res.status(400).json({
+				message: 'No fields provided for update'
+			});
+		}
+		const validationResult = validateCategory(req.body);
 
-        if (validationResult) {
-            console.error('Validation error:', validationResult.message);
-            return res.json({ message: validationResult.message });
-        }
+		if (validationResult) {
+			console.error('Validation error:', validationResult.message);
+			return res.json({
+				message: validationResult.message
+			});
+		}
 
-        const checkAdmin = await userModel.findById(req.userId);
+		const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
-       
-           let imageLink = "";
+		if (checkAdmin.userType === "admin") {
+			const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
 
-
-        if (req.file != undefined) { 
-            console.log("********")
-            const folderName = 'category';
-            const qualityLevel = 'auto:low';
-    
-            const bufferStream = cloudinary.uploader.upload_stream(
-                { folder: folderName, resource_type: 'auto', quality: qualityLevel },
-                async (error, result) => {
-                    if (error) {
-                        return res.status(500).json({ error: 'Failed to upload image to Cloudinary' });
-                    }
-                    
-           
-                    imageLink = result.secure_url
-                    console.log("imagelink")
-
-                    const updatedCategory = await categoryModel.findByIdAndUpdate(
-                        categoryId,
-                        { ...req.body, categoryImage: imageLink  },
-                        { new: true }
-                    );
-        
-                    if (!updatedCategory) {
-                        return res.status(404).json({ error: 'Category not found' });
-                    }
-        
-                    return res.status(200).json({ message: 'Category updkasjmfknaskated successfull1y', data: updatedCategory });
-                });
-                 bufferStream.end(req.file.buffer);
+			let imageLink = "";
 
 
-        }
-        else{
-            const updatedCategory = await categoryModel.findByIdAndUpdate(
-            categoryId,
-           {...req.body},
-            { new: true }
-        );
+			if (req.file != undefined) {
+				console.log("********")
+				const folderName = 'category';
+				const qualityLevel = 'auto:low';
 
-        if (!updatedCategory) {
-            return res.status(404).json({ error: 'Category not found' });
-        }
+				const bufferStream = cloudinary.uploader.upload_stream({
+						folder: folderName,
+						resource_type: 'auto',
+						quality: qualityLevel
+					},
+					async (error, result) => {
+						if (error) {
+							return res.status(500).json({
+								error: 'Failed to upload image to Cloudinary'
+							});
+						}
 
-        return res.status(200).json({ message: 'Category updated successfully', data: updatedCategory });
 
-        }
+						imageLink = result.secure_url
+						console.log("imagelink")
 
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+						const updatedCategory = await categoryModel.findByIdAndUpdate(
+							categoryId, {
+								...req.body,
+								categoryImage: imageLink
+							}, {
+								new: true
+							}
+						);
+
+						if (!updatedCategory) {
+							return res.status(404).json({
+								error: 'Category not found'
+							});
+						}
+
+						return res.status(200).json({
+							message: 'Category updkasjmfknaskated successfull1y',
+							data: updatedCategory
+						});
+					});
+				bufferStream.end(req.file.buffer);
+
+
+			} else {
+				const updatedCategory = await categoryModel.findByIdAndUpdate(
+					categoryId, {
+						...req.body
+					}, {
+						new: true
+					}
+				);
+
+				if (!updatedCategory) {
+					return res.status(404).json({
+						error: 'Category not found'
+					});
+				}
+
+				return res.status(200).json({
+					message: 'Category updated successfully',
+					data: updatedCategory
+				});
+
+			}
+
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 }
 
 exports.createSubCategory = async (req, res) => {
-    try {
+	try {
 
-        const { id } = req.params
-        if (!mongoose.isValidObjectId(id)) {
-            return res.status(400).json({ message: 'Invalid Category ID' });
-        }
-        else {
+		const {
+			id
+		} = req.params
+		if (!mongoose.isValidObjectId(id)) {
+			return res.status(400).json({
+				message: 'Invalid Category ID'
+			});
+		} else {
 
-            let checkCategory = await categoryModel.findById(id)
+			let checkCategory = await categoryModel.findById(id)
 
-            if (checkCategory) {
-                if(checkCategory.category_type!="subcategory"){
-                    return res.json({ message: "Sub Categpory not add in this category" });
+			if (checkCategory) {
+				if (checkCategory.category_type != "subcategory") {
+					return res.json({
+						message: "Sub Categpory not add in this category"
+					});
 
-                }
-                const validationResult = validateSubCategory(req.body);
+				}
+				const validationResult = validateSubCategory(req.body);
 
-                if (validationResult) {
-                    console.error('Validation error:', validationResult.message);
-                    return res.json({ message: validationResult.message });
+				if (validationResult) {
+					console.error('Validation error:', validationResult.message);
+					return res.json({
+						message: validationResult.message
+					});
 
-                }
-                const checkAdmin = await userModel.findById(req.userId)
-                if (checkAdmin.userType == "admin") {
+				}
+				const checkAdmin = await userModel.findById(req.userId)
+				if (checkAdmin.userType == "admin") {
 
-                    req.body.categoryId = id
+					req.body.categoryId = id
 
-                    var subCatAdd = subCategoryModel(req.body)
-                    await subCatAdd.save()
+					var subCatAdd = subCategoryModel(req.body)
+					await subCatAdd.save()
 
-                    checkCategory.sub_category.push(subCatAdd._id)
-                    await checkCategory.save();
+					checkCategory.sub_category.push(subCatAdd._id)
+					await checkCategory.save();
 
-                    return res.status(200).json({ message: 'Add New Sub Category', data: subCatAdd });
-                }
-                else {
-                    return res.status(400).json({ error: 'Please Login as Admin' });
-                }
-            }
-            else {
-                return res.status(400).json({ error: 'Category Not Found' });
-            }
-        }
+					return res.status(200).json({
+						message: 'Add New Sub Category',
+						data: subCatAdd
+					});
+				} else {
+					return res.status(400).json({
+						error: 'Please Login as Admin'
+					});
+				}
+			} else {
+				return res.status(400).json({
+					error: 'Category Not Found'
+				});
+			}
+		}
 
-    }
-    catch (e) {
-        console.log(e)
-        return res.status(409).json({ error: 'Error' });
-    }
+	} catch (e) {
+		console.log(e)
+		return res.status(409).json({
+			error: 'Error'
+		});
+	}
 }
 
 exports.deleteCategory = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findById(req.userId);
+	try {
+		const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
-            const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
+		if (checkAdmin.userType === "admin") {
+			const categoryId = req.params.categoryId; // Assuming you have the categoryId in the request parameters
+			const deletedCategory = await categoryModel.findByIdAndDelete(categoryId);
 
-            if (!deletedCategory) {
-                return res.status(404).json({ error: 'Category not found' });
-            }
+			if (!deletedCategory) {
+				return res.status(404).json({
+					error: 'Category not found'
+				});
+			}
 
-            return res.status(200).json({ message: 'Category deleted successfully', data: deletedCategory });
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+			return res.status(200).json({
+				message: 'Category deleted successfully',
+				data: deletedCategory
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 }
 
 exports.viewSubCategory = async (req, res) => {
-    try {
-    const checkAdmin = await userModel.findById(req.userId)
-    if (checkAdmin.userType == "admin") {
-        let subcategory = await subCategoryModel.find({categoryId:req.params.categoryId}).populate("captions")
+	try {
+		const checkAdmin = await userModel.findById(req.userId)
+		if (checkAdmin.userType == "admin") {
+			let subcategory = await subCategoryModel.find({
+				categoryId: req.params.categoryId
+			}).populate("captions")
 
 
-        return res.status(200).json({ message: 'View All Sub Category', data: subcategory });
-    }
-    else {
-        return res.status(400).json({ error: 'Please Login as Admin' });
-    }
+			return res.status(200).json({
+				message: 'View All Sub Category',
+				data: subcategory
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
 
 
-    }
-    catch(e){
-        return res.status(409).json({ error: 'Error' });
-    }
+	} catch (e) {
+		return res.status(409).json({
+			error: 'Error'
+		});
+	}
 
 }
 
 exports.deletesubCategory = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findById(req.userId);
+	try {
+		const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const subcategoryId = req.params.subCategoryId; // Assuming you have the categoryId in the request parameters
-            console.log(subcategoryId)
-            const deletedSubCategory = await subCategoryModel
-                .findByIdAndDelete(subcategoryId)// Assuming 'category' is the field in subCategoryModel referencing categoryModel
+		if (checkAdmin.userType === "admin") {
+			const subcategoryId = req.params.subCategoryId; // Assuming you have the categoryId in the request parameters
+			console.log(subcategoryId)
+			const deletedSubCategory = await subCategoryModel
+				.findByIdAndDelete(subcategoryId) // Assuming 'category' is the field in subCategoryModel referencing categoryModel
 
-            if (!deletedSubCategory) {
-                return res.status(404).json({ error: 'Sub Category not found' });
-            }
+			if (!deletedSubCategory) {
+				return res.status(404).json({
+					error: 'Sub Category not found'
+				});
+			}
 
-            // Remove the subcategory from the associated category
-            const categoryId = deletedSubCategory.categoryId;
-            const updatedCategory = await categoryModel.findByIdAndUpdate(
-                categoryId,
-                { $pull: { sub_category: subcategoryId } },
-                { new: true }
-            );
+			// Remove the subcategory from the associated category
+			const categoryId = deletedSubCategory.categoryId;
+			const updatedCategory = await categoryModel.findByIdAndUpdate(
+				categoryId, {
+					$pull: {
+						sub_category: subcategoryId
+					}
+				}, {
+					new: true
+				}
+			);
 
-            return res.status(200).json({ message: 'Sub Category deleted successfully', data: deletedSubCategory });
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+			return res.status(200).json({
+				message: 'Sub Category deleted successfully',
+				data: deletedSubCategory
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 }
 
 exports.updatesubCategory = async (req, res) => {
-    try {
+	try {
 
-        if (Object.keys(req.body).length === 0) {
-            return res.status(400).json({ message: 'No fields provided for update' });
-        }
-        const validationResult = validateSubCategory(req.body);
+		if (Object.keys(req.body).length === 0) {
+			return res.status(400).json({
+				message: 'No fields provided for update'
+			});
+		}
+		const validationResult = validateSubCategory(req.body);
 
-        if (validationResult) {
-            console.error('Validation error:', validationResult.message);
-            return res.json({ message: validationResult.message });
-        }
+		if (validationResult) {
+			console.error('Validation error:', validationResult.message);
+			return res.json({
+				message: validationResult.message
+			});
+		}
 
-        const checkAdmin = await userModel.findById(req.userId);
+		const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const categoryId = req.params.subCategoryId; // Assuming you have the categoryId in the request parameters
-        const updatedCategory = await subCategoryModel.findByIdAndUpdate(
-            categoryId,
-           {...req.body},
-            { new: true }
-        );
+		if (checkAdmin.userType === "admin") {
+			const categoryId = req.params.subCategoryId; // Assuming you have the categoryId in the request parameters
+			const updatedCategory = await subCategoryModel.findByIdAndUpdate(
+				categoryId, {
+					...req.body
+				}, {
+					new: true
+				}
+			);
 
-        if (!updatedCategory) {
-            return res.status(404).json({ error: 'Sub category not found' });
-        }
+			if (!updatedCategory) {
+				return res.status(404).json({
+					error: 'Sub category not found'
+				});
+			}
 
-        return res.status(200).json({ message: 'Sub category updated successfully', data: updatedCategory });
+			return res.status(200).json({
+				message: 'Sub category updated successfully',
+				data: updatedCategory
+			});
 
-        
 
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 }
 
 
- exports.getCaptions = async (req, res) => {
-        try {
-            const { categoryId, subCategoryId } = req.body;
-    
-            let query = {};
+exports.getCaptions = async (req, res) => {
+	try {
+		const {
+			categoryId,
+			subCategoryId
+		} = req.body;
 
-            if (categoryId) {
-                query = { categoryId };
-            }
+		let query = {};
 
-            if (subCategoryId) {
-                query = { subCategoryId };
-            }
+		if (categoryId) {
+			query = {
+				categoryId
+			};
+		}
 
-            console.log(query)
+		if (subCategoryId) {
+			query = {
+				subCategoryId
+			};
+		}
 
-            const captions = await CaptionModel.find(query);
-    
-            if (!captions || captions.length === 0) {
-                return res.status(404).json({ error: 'No captions found for the provided criteria' });
-            }
-    
-            return res.status(200).json({ message: 'Captions retrieved successfully', data: captions });
-        } catch (e) {
-            console.log(e);
-            return res.status(500).json({ error: 'Internal Server Error' });
-        }
+		console.log(query)
+
+		const captions = await CaptionModel.find(query);
+
+		if (!captions || captions.length === 0) {
+			return res.status(404).json({
+				error: 'No captions found for the provided criteria'
+			});
+		}
+
+		return res.status(200).json({
+			message: 'Captions retrieved successfully',
+			data: captions
+		});
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 };
 
 exports.deleteCaptions = async (req, res) => {
-    try {
-        const checkAdmin = await userModel.findById(req.userId);
+	try {
+		const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
-            console.log(captionId)
-            const deletedCaptions = await CaptionModel
-                .findByIdAndDelete(captionId)// Assuming 'category' is the field in subCategoryModel referencing categoryModel
+		if (checkAdmin.userType === "admin") {
+			const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
+			console.log(captionId)
+			const deletedCaptions = await CaptionModel
+				.findByIdAndDelete(captionId) // Assuming 'category' is the field in subCategoryModel referencing categoryModel
 
-            if (!deletedCaptions) {
-                return res.status(404).json({ error: 'Captions not found' });
-            }
+			if (!deletedCaptions) {
+				return res.status(404).json({
+					error: 'Captions not found'
+				});
+			}
 
-            // Remove the subcategory from the associated category
-            const categoryId = deletedCaptions.categoryId;
-            const updatedCategory = await categoryModel.findByIdAndUpdate(
-                categoryId,
-                { $pull: { Caption: captionId } },
-                { new: true }
-            );
+			// Remove the subcategory from the associated category
+			const categoryId = deletedCaptions.categoryId;
+			const updatedCategory = await categoryModel.findByIdAndUpdate(
+				categoryId, {
+					$pull: {
+						Caption: captionId
+					}
+				}, {
+					new: true
+				}
+			);
 
-            const updatedSubCategory = await subCategoryModel.findByIdAndUpdate(
-                categoryId,
-                { $pull: {  Caption: captionId } },
-                { new: true }
-            );
+			const updatedSubCategory = await subCategoryModel.findByIdAndUpdate(
+				categoryId, {
+					$pull: {
+						Caption: captionId
+					}
+				}, {
+					new: true
+				}
+			);
 
-            return res.status(200).json({ message: 'Captions deleted successfully', data: deletedCaptions });
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+			return res.status(200).json({
+				message: 'Captions deleted successfully',
+				data: deletedCaptions
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 
 }
 
-exports.editCaption = async (req,res)=>{
-    try {
+exports.editCaption = async (req, res) => {
+	try {
 
-        if (Object.keys(req.body).length === 0) {
-            return res.status(400).json({ message: 'No fields provided for update' });
+		if (Object.keys(req.body).length === 0) {
+			return res.status(400).json({
+				message: 'No fields provided for update'
+			});
+		}
+		const validationResult = validateCategoryCaption(req.body);
+
+		if (validationResult) {
+			console.error('Validation error:', validationResult.message);
+			return res.json({
+				message: validationResult.message
+			});
+		}
+
+		const checkAdmin = await userModel.findById(req.userId);
+
+		if (checkAdmin.userType === "admin") {
+
+			if (req.file != undefined) {
+				const folderName = 'caption';
+				const qualityLevel = 'auto:low';
+                let imagelink="";
+
+				const bufferStream = cloudinary.uploader.upload_stream({
+						folder: folderName,
+						resource_type: 'auto',
+						quality: qualityLevel
+					},
+					async (error, result) => {
+						if (error) {
+							return res.status(500).json({
+								error: 'Failed to upload image to Cloudinary'
+							});
+
+						}
+                        imageLink = result.secure_url
+                        const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
+						const updatedCaption = await CaptionModel.findByIdAndUpdate(
+							captionId, {
+								...req.body,
+                                image: imageLink
+
+							}, {
+								new: true
+							}
+						);
+
+
+
+
+						if (!updatedCaption) {
+							return res.status(404).json({
+								error: 'Caption not found'
+							});
+						}
+
+						return res.status(200).json({
+							message: 'Caption updated successfully',
+							data: updatedCaption
+						});
+                
+
+						
+					})
+                    bufferStream.end(req.file.buffer)
+
+			}
+            else{
+
+			const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
+			const updatedCaption = await CaptionModel.findByIdAndUpdate(
+				captionId, {
+					...req.body
+				}, {
+					new: true
+				}
+			);
+
+			if (!updatedCaption) {
+				return res.status(404).json({
+					error: 'Caption not found'
+				});
+			}
+
+			return res.status(200).json({
+				message: 'Caption updated successfully',
+				data: updatedCaption
+			});
         }
-        const validationResult = validateCategoryCaption(req.body);
 
-        if (validationResult) {
-            console.error('Validation error:', validationResult.message);
-            return res.json({ message: validationResult.message });
-        }
 
-        const checkAdmin = await userModel.findById(req.userId);
 
-        if (checkAdmin.userType === "admin") {
-            const captionId = req.params.captionId; // Assuming you have the categoryId in the request parameters
-        const updatedCaption = await CaptionModel.findByIdAndUpdate(
-            captionId,
-           {...req.body},
-            { new: true }
-        );
-
-        if (!updatedCaption) {
-            return res.status(404).json({ error: 'Caption not found' });
-        }
-
-        return res.status(200).json({ message: 'Caption updated successfully', data: updatedCaption });
-
-        
-
-        } else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    } catch (e) {
-        console.log(e);
-        return res.status(500).json({ error: 'Internal Server Error' });
-    }
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+	} catch (e) {
+		console.log(e);
+		return res.status(500).json({
+			error: 'Internal Server Error'
+		});
+	}
 }
 
 
@@ -500,209 +724,314 @@ exports.editCaption = async (req,res)=>{
 // }
 
 exports.createCaptionCategory = async (req, res) => {
-    try {
+	try {
 
-        const { id } = req.params
-        const {sub_category_id} = req.body
+		const {
+			id
+		} = req.params
+		const {
+			sub_category_id
+		} = req.body
 
-        delete req.body["sub_category_id"]
+		delete req.body["sub_category_id"]
 
-        if (!mongoose.isValidObjectId(id)) {
-            return res.status(400).json({ message: 'Invalid Category ID' });
-        }
-        else {
+		if (!mongoose.isValidObjectId(id)) {
+			return res.status(400).json({
+				message: 'Invalid Category ID'
+			});
+		} else if (req.file == undefined) {
 
-            let checkCategory = await categoryModel.findById(id)
+			return res.status(401).json({
+				message: 'Select Caption Pic'
+			});
+		} else {
 
-            if (checkCategory) {
-                if(checkCategory.category_type=="subcategory"){
-                    if(sub_category_id == undefined || sub_category_id ==null ){
-                        return res.json({ message: "Sub Category Required" });
-                    }
+			let checkCategory = await categoryModel.findById(id)
 
-                    else{
-                        
-                        let checkSubCategory = await subCategoryModel.findById(sub_category_id)
-                        if(checkSubCategory.length==0 || checkSubCategory==null){
-                            return res.json({ message: "invalid Sub Category Id"});
 
-                        }
-                        else{
-                            const validationResult = validateCategoryCaption(req.body);
-                            if (validationResult) {
-                                console.error('Validation error:', validationResult.message);
-                                return res.json({ message: validationResult.message });
-            
-                            }
-                            const checkAdmin = await userModel.findById(req.userId)
-                            if (checkAdmin.userType == "admin") {
-            
-                                req.body.categoryId = id
-                                req.body.subCategoryId = sub_category_id
-            
-                                var captionAdd = CaptionModel(req.body)
-                                await captionAdd.save()
-            
-                                checkSubCategory.Caption.push(captionAdd._id)
+			if (checkCategory) {
+				if (checkCategory.category_type == "subcategory") {
+					if (sub_category_id == undefined || sub_category_id == null) {
+						return res.json({
+							message: "Sub Category Required"
+						});
+					} else {
+						console.log(sub_category_id)
 
-                                await checkSubCategory.save();
-            
-                                return res.status(200).json({ message: 'Add New Caption in Sub category', data: captionAdd });
-                            }
-                            else {
-                                return res.status(400).json({ error: 'Please Login as Admin' });
-                            }
 
-                        }
-                       
-                    }
-                    // return res.json({ message: "Sub Categpory not add in this category" });
+						let checkSubCategory = await subCategoryModel.findById(sub_category_id)
+						if (checkSubCategory.length == 0 || checkSubCategory == null) {
+							return res.json({
+								message: "invalid Sub Category Id"
+							});
 
-                }
-                else{
+						} else {
+							const validationResult = validateCategoryCaption(req.body);
+							if (validationResult) {
+								console.error('Validation error:', validationResult.message);
+								return res.json({
+									message: validationResult.message
+								});
 
-                    const validationResult = validateCategoryCaption(req.body);
-                    if (validationResult) {
-                        console.error('Validation error:', validationResult.message);
-                        return res.json({ message: validationResult.message });
-    
-                    }
-                    const checkAdmin = await userModel.findById(req.userId)
-                    if (checkAdmin.userType == "admin") {
-    
-                        req.body.categoryId = id
-    
-                        var captionAdd = CaptionModel(req.body)
-                        await captionAdd.save()
-    
-                        checkCategory.Caption.push(captionAdd._id)
+							}
+							const checkAdmin = await userModel.findById(req.userId)
+							if (checkAdmin.userType == "admin") {
+								const folderName = 'caption';
+								const qualityLevel = 'auto:low';
 
-                        await checkCategory.save();
-    
-                        return res.status(200).json({ message: 'Add New Caption in  category', data: captionAdd });
-                    }
-                    else {
-                        return res.status(400).json({ error: 'Please Login as Admin' });
-                    }
+								const bufferStream = cloudinary.uploader.upload_stream({
+										folder: folderName,
+										resource_type: 'auto',
+										quality: qualityLevel
+									},
+									async (error, result) => {
+										if (error) {
+											return res.status(500).json({
+												error: 'Failed to upload image to Cloudinary'
+											});
+										}
+										req.body.categoryId = id
+										req.body.subCategoryId = sub_category_id
 
-                
-                }
-                
-            }
-            else {
-                return res.status(400).json({ error: 'Category Not Found' });
-            }
-        }
 
-    }
-    catch (e) {
-        console.log(e)
-        return res.status(409).json({ error: 'Error' });
-    }
+
+										var captionAdd = CaptionModel({
+											...req.body,
+											image: result.secure_url
+										})
+										await captionAdd.save()
+
+										checkSubCategory.Caption.push(captionAdd._id)
+
+										await checkSubCategory.save();
+
+										return res.status(200).json({
+											message: 'Add New Caption in Sub category',
+											data: captionAdd
+										});
+
+									})
+
+								bufferStream.end(req.file.buffer)
+							} else {
+								return res.status(400).json({
+									error: 'Please Login as Admin'
+								});
+							}
+
+						}
+
+					}
+					// return res.json({ message: "Sub Categpory not add in this category" });
+
+				} else {
+
+					const validationResult = validateCategoryCaption(req.body);
+					if (validationResult) {
+						console.error('Validation error:', validationResult.message);
+						return res.json({
+							message: validationResult.message
+						});
+
+					}
+					const checkAdmin = await userModel.findById(req.userId)
+					if (checkAdmin.userType == "admin") {
+
+						const folderName = 'caption';
+						const qualityLevel = 'auto:low';
+
+						const bufferStream = cloudinary.uploader.upload_stream({
+								folder: folderName,
+								resource_type: 'auto',
+								quality: qualityLevel
+							},
+							async (error, result) => {
+								if (error) {
+									return res.status(500).json({
+										error: 'Failed to upload image to Cloudinary'
+									});
+								}
+								req.body.categoryId = id
+
+
+
+								var captionAdd = CaptionModel({
+									...req.body,
+									image: result.secure_url
+								})
+								await captionAdd.save()
+
+								checkCategory.Caption.push(captionAdd._id)
+								console.log(checkCategory)
+
+								await checkCategory.save();
+
+								return res.status(200).json({
+									message: 'Add New Caption in  category',
+									data: captionAdd
+								});
+
+							})
+
+						bufferStream.end(req.file.buffer)
+
+
+					} else {
+						return res.status(400).json({
+							error: 'Please Login as Admin'
+						});
+					}
+
+
+				}
+
+			} else {
+				return res.status(400).json({
+					error: 'Category Not Found'
+				});
+			}
+		}
+
+	} catch (e) {
+		console.log(e)
+		return res.status(409).json({
+			error: 'Error'
+		});
+	}
 }
 
 
 exports.createImages = async (req, res) => {
-    try {
-    const checkAdmin = await userModel.findById(req.userId)
-    if (checkAdmin.userType == "admin") {
+	try {
+		const checkAdmin = await userModel.findById(req.userId)
+		if (checkAdmin.userType == "admin") {
 
-        if (req.file == undefined) {
+			if (req.file == undefined) {
 
-            return res.status(401).json({ message: 'Select Image' });
-        }
+				return res.status(401).json({
+					message: 'Select Image'
+				});
+			}
 
-        const folderName = 'Images';
-        const qualityLevel = 'auto:low';
+			const folderName = 'Images';
+			const qualityLevel = 'auto:low';
 
-        const bufferStream = cloudinary.uploader.upload_stream(
-            { folder: folderName, resource_type: 'auto', quality: qualityLevel },
-            (error, result) => {
-                if (error) {
-                    return res.status(500).json({ error: 'Failed to upload image to Cloudinary' });
-                }
+			const bufferStream = cloudinary.uploader.upload_stream({
+					folder: folderName,
+					resource_type: 'auto',
+					quality: qualityLevel
+				},
+				(error, result) => {
+					if (error) {
+						return res.status(500).json({
+							error: 'Failed to upload image to Cloudinary'
+						});
+					}
 
 
-                // Add the Cloudinary URL to your category data
-                const IamgeAdd = ImagesModel({ status:"show", image: result.secure_url });
-                IamgeAdd.save();
+					// Add the Cloudinary URL to your category data
+					const IamgeAdd = ImagesModel({
+						status: "show",
+						image: result.secure_url
+					});
+					IamgeAdd.save();
 
-                return res.status(409).json({ message: 'Add New Images', data: IamgeAdd });
-            }
-        );
+					return res.status(409).json({
+						message: 'Add New Images',
+						data: IamgeAdd
+					});
+				}
+			);
 
-        // Convert the Buffer to a ReadableStream
-        bufferStream.end(req.file.buffer);
-    }
-    else {
-        return res.status(400).json({ error: 'Please Login as Admin' });
-    }
+			// Convert the Buffer to a ReadableStream
+			bufferStream.end(req.file.buffer);
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
 
-    }
-    catch (e) {
-        console.log(e)
-        return res.status(409).json({ error: e });
-    }
+	} catch (e) {
+		console.log(e)
+		return res.status(409).json({
+			error: e
+		});
+	}
 }
 
 exports.deleteImages = async (req, res) => {
-    try {
-    const checkAdmin = await userModel.findById(req.userId)
-    if (checkAdmin.userType == "admin") {
-        const imageId = req.params.imageId; // Assuming you have the categoryId in the request parameters
+	try {
+		const checkAdmin = await userModel.findById(req.userId)
+		if (checkAdmin.userType == "admin") {
+			const imageId = req.params.imageId; // Assuming you have the categoryId in the request parameters
 
-        const deletedImage = await ImagesModel.findByIdAndDelete(imageId)
-        return res.status(200).json({ message: 'Image  deleted successfully', data: deletedImage });
+			const deletedImage = await ImagesModel.findByIdAndDelete(imageId)
+			return res.status(200).json({
+				message: 'Image  deleted successfully',
+				data: deletedImage
+			});
 
-    }
-    else {
-        return res.status(400).json({ error: 'Please Login as Admin' });
-    }
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
 
-    }
-    catch (e) {
-        console.log(e)
-        return res.status(409).json({ error: e });
-    }
+	} catch (e) {
+		console.log(e)
+		return res.status(409).json({
+			error: e
+		});
+	}
 }
 
 exports.viewImages = async (req, res) => {
-    try{
-        const checkAdmin = await userModel.findById(req.userId)
-        if (checkAdmin.userType == "admin") {
-            let Images = await ImagesModel.find({})
-    
-    
-            return res.status(200).json({ message: 'View All Images', data: Images });
-        }
-        else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    
-    
-        }
-        catch(e){
-            return res.status(409).json({ error: 'Error' });
-        }
+	try {
+		const checkAdmin = await userModel.findById(req.userId)
+		if (checkAdmin.userType == "admin") {
+			let Images = await ImagesModel.find({})
+
+
+			return res.status(200).json({
+				message: 'View All Images',
+				data: Images
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+
+
+	} catch (e) {
+		return res.status(409).json({
+			error: 'Error'
+		});
+	}
 }
 
 exports.deleteImages = async (req, res) => {
-    try{
-        const checkAdmin = await userModel.findById(req.userId)
-        if (checkAdmin.userType == "admin") {
-            let Images = await ImagesModel.findByIdAndDelete(req.params.imageId)
-    
-    
-            return res.status(200).json({ message: 'Delete Image', data: Images });
-        }
-        else {
-            return res.status(400).json({ error: 'Please Login as Admin' });
-        }
-    
-    
-        }
-        catch(e){
-            return res.status(409).json({ error: 'Error' });
-        }
+	try {
+		const checkAdmin = await userModel.findById(req.userId)
+		if (checkAdmin.userType == "admin") {
+			let Images = await ImagesModel.findByIdAndDelete(req.params.imageId)
+
+
+			return res.status(200).json({
+				message: 'Delete Image',
+				data: Images
+			});
+		} else {
+			return res.status(400).json({
+				error: 'Please Login as Admin'
+			});
+		}
+
+
+	} catch (e) {
+		return res.status(409).json({
+			error: 'Error'
+		});
+	}
 }
 // Zubair11$%^

@@ -26,6 +26,10 @@ const captionCategorySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "SubCategory",
         // required: true,
+    },
+    image:{
+        type: String,
+        required: true
     }
     
 
